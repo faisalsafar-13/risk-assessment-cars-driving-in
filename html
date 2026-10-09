@@ -1,0 +1,715 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Car Park Risk Assessment</title>
+<meta name="theme-color" content="#0f5c4a">
+<style>
+  :root {
+    --brand: #0f5c4a; --brand-ink: #ffffff; --brand-soft: #e6f1ee;
+    --bg: #f4f5f3; --card: #ffffff; --ink: #1c2421; --muted: #5d6965; --line: #d9dfdc;
+    --low: #2e7d4f; --low-bg: #e3f3e8; --med: #9a6400; --med-bg: #fff2d6; --high: #b3261e; --high-bg: #fde4e1;
+    --radius: 14px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --brand: #3fa78a; --brand-ink: #06231b; --brand-soft: #16302a;
+      --bg: #111614; --card: #1a201e; --ink: #e8eeeb; --muted: #9fb0aa; --line: #2e3734;
+      --low: #7fd3a0; --low-bg: #173324; --med: #f1c46b; --med-bg: #3a2c0f; --high: #ff8f86; --high-bg: #3f1714;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding-bottom: 96px; }
+  header { background: var(--brand); color: var(--brand-ink); padding: 20px 16px 18px; padding-top: max(20px, env(safe-area-inset-top)); }
+  header h1 { margin: 0 0 4px; font-size: 1.3rem; line-height: 1.2; }
+  header p { margin: 0; opacity: .9; font-size: .92rem; }
+  main { max-width: 720px; margin: 0 auto; padding: 12px 16px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; margin: 14px 0; }
+  .card h2 { margin: 0 0 4px; font-size: 1.1rem; display: flex; gap: 10px; align-items: center; }
+  .card h2 .step { background: var(--brand); color: var(--brand-ink); border-radius: 50%; width: 26px; height: 26px; display: inline-grid; place-items: center; font-size: .85rem; flex: none; }
+  .hint { color: var(--muted); font-size: .9rem; margin: 0 0 12px; }
+  label.f { display: block; font-weight: 600; font-size: .92rem; margin: 12px 0 0; }
+  label.f .req { color: var(--high); }
+  input[type=text], input[type=date], input[type=time], input[type=number], select, textarea {
+    width: 100%; margin-top: 6px; font: inherit; color: var(--ink); background: var(--card);
+    border: 1px solid var(--line); border-radius: 10px; padding: 11px 12px; min-height: 46px;
+  }
+  textarea { resize: vertical; min-height: 46px; overflow: hidden; }
+  input:focus, select:focus, textarea:focus { outline: 2px solid var(--brand); outline-offset: 1px; border-color: transparent; }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .two > label.f { min-width: 0; }
+  h3 { font-size: .95rem; margin: 20px 0 6px; color: var(--brand); text-transform: uppercase; letter-spacing: .04em; }
+  .obs { border-top: 1px solid var(--line); padding: 12px 0; }
+  .obs:first-of-type { border-top: 0; }
+  .obs .q { margin: 0 0 8px; font-weight: 500; }
+  .obs.concern { background: var(--high-bg); margin: 0 -16px; padding: 12px 16px; }
+  .seg { display: flex; gap: 6px; }
+  .seg label { flex: 1; }
+  .seg input { position: absolute; opacity: 0; pointer-events: none; }
+  .seg span { display: block; text-align: center; padding: 10px 4px; border: 1px solid var(--line); border-radius: 10px; font-weight: 600; font-size: .92rem; background: var(--card); cursor: pointer; user-select: none; }
+  .seg input:checked + span { background: var(--brand); color: var(--brand-ink); border-color: var(--brand); }
+  .seg input:focus-visible + span { outline: 2px solid var(--brand); outline-offset: 2px; }
+  .obs textarea { margin-top: 8px; min-height: 40px; padding: 8px 10px; font-size: .92rem; }
+  .ra { border: 1px solid var(--line); border-radius: 12px; padding: 12px; margin: 12px 0; }
+  .ra-head { display: flex; gap: 10px; align-items: flex-start; }
+  .ra-head .num { background: var(--brand-soft); color: var(--brand); font-weight: 700; border-radius: 8px; padding: 2px 9px; margin-top: 12px; flex: none; }
+  .ra-head textarea { font-weight: 600; margin-top: 0; }
+  .rate { display: grid; grid-template-columns: 1fr 1fr; gap: 0 10px; align-items: end; }
+  .rate .badge { grid-column: 1 / -1; margin-top: 8px; min-height: 36px; }
+  .rate select { padding-left: 8px; padding-right: 4px; }
+  .rate .f { margin-top: 10px; }
+  .badge { font-weight: 700; font-size: .85rem; padding: 0 10px; border-radius: 10px; min-height: 46px; display: grid; place-items: center; min-width: 76px; text-align: center; background: var(--bg); color: var(--muted); border: 1px solid var(--line); }
+  .badge.low { background: var(--low-bg); color: var(--low); border-color: transparent; }
+  .badge.med { background: var(--med-bg); color: var(--med); border-color: transparent; }
+  .badge.high { background: var(--high-bg); color: var(--high); border-color: transparent; }
+  .sub { font-size: .8rem; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: 14px 0 0; font-weight: 700; }
+  details.key { background: var(--brand-soft); border-radius: 10px; padding: 10px 12px; font-size: .9rem; }
+  details.key summary { font-weight: 600; cursor: pointer; }
+  details.key table { border-collapse: collapse; margin-top: 8px; width: 100%; }
+  details.key td { padding: 3px 4px; vertical-align: top; }
+  button { font: inherit; cursor: pointer; }
+  .btn { border: 1px solid var(--line); background: var(--card); color: var(--ink); border-radius: 10px; padding: 11px 14px; font-weight: 600; min-height: 46px; }
+  .btn.primary { background: var(--brand); color: var(--brand-ink); border-color: var(--brand); }
+  .btn.small { min-height: 36px; padding: 6px 10px; font-size: .85rem; }
+  .btn.danger { color: var(--high); }
+  .btn.block { width: 100%; }
+  .photos { display: grid; grid-template-columns: 1fr; gap: 12px; margin-top: 12px; }
+  .photo { display: grid; grid-template-columns: 96px 1fr; gap: 10px; align-items: start; }
+  .photo img { width: 96px; height: 96px; object-fit: cover; border-radius: 10px; border: 1px solid var(--line); }
+  .photo textarea { margin-top: 0; }
+  .photo .btn { margin-top: 6px; }
+  .filebtn { position: relative; display: block; }
+  .filebtn input { position: absolute; inset: 0; opacity: 0; width: 100%; cursor: pointer; }
+  .sig-wrap { border: 1px dashed var(--muted); border-radius: 10px; background: #fff; margin-top: 6px; touch-action: none; }
+  canvas#sig { display: block; width: 100%; height: 150px; }
+  .row { display: flex; gap: 8px; justify-content: space-between; align-items: center; flex-wrap: wrap; }
+  .bar { position: fixed; left: 0; right: 0; bottom: 0; background: var(--card); border-top: 1px solid var(--line); padding: 10px 16px; padding-bottom: max(10px, env(safe-area-inset-bottom)); z-index: 5; }
+  .bar .inner { max-width: 720px; margin: 0 auto; display: flex; gap: 10px; align-items: center; }
+  .bar .status { font-size: .8rem; color: var(--muted); flex: 1; min-width: 0; }
+  .bar .btn.primary { flex: none; }
+  .sheet { position: fixed; inset: 0; background: rgba(0,0,0,.45); display: none; align-items: flex-end; justify-content: center; z-index: 10; }
+  .sheet.open { display: flex; }
+  .sheet .panel { background: var(--card); width: 100%; max-width: 520px; border-radius: 18px 18px 0 0; padding: 20px 16px; padding-bottom: max(20px, env(safe-area-inset-bottom)); }
+  .sheet h2 { margin: 0 0 6px; font-size: 1.15rem; }
+  .sheet .actions { display: grid; gap: 10px; margin-top: 14px; }
+  .err { color: var(--high); font-size: .9rem; margin-top: 4px; display: none; }
+  .invalid { border-color: var(--high) !important; }
+  .muted { color: var(--muted); }
+  footer { text-align: center; color: var(--muted); font-size: .8rem; margin: 20px 0; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Car Park &amp; Traffic Risk Assessment</h1>
+  <p id="hdrSite">Safar Academy · Enfield branch · Enfield County School</p>
+</header>
+
+<main>
+  <form id="f" autocomplete="off" onsubmit="return false">
+
+  <section class="card">
+    <h2><span class="step">1</span>Details</h2>
+    <p class="hint">Stand in the car park for the whole drop-off or pick-up period, then fill this in. Your answers save on this phone as you go.</p>
+    <label class="f">Branch<input type="text" name="branch" value="Enfield"></label>
+    <label class="f">Site<input type="text" name="site" value="Enfield County School"></label>
+    <label class="f">Your name <span class="req">*</span><input type="text" name="assessor" autocomplete="name" required></label>
+    <label class="f">Your role<input type="text" name="role" placeholder="e.g. Branch lead, teacher, volunteer"></label>
+    <div class="two">
+      <label class="f">Date <span class="req">*</span><input type="date" name="date" required></label>
+      <label class="f">Session <span class="req">*</span>
+        <select name="session" required>
+          <option value="">Choose…</option>
+          <option>Drop-off</option>
+          <option>Pick-up</option>
+          <option>Drop-off and pick-up</option>
+        </select>
+      </label>
+    </div>
+    <div class="two">
+      <label class="f">From<input type="time" name="tFrom"></label>
+      <label class="f">To<input type="time" name="tTo"></label>
+    </div>
+    <label class="f">Conditions
+      <select name="conditions">
+        <option value="">Choose…</option>
+        <option>Dry, good light</option>
+        <option>Rain</option>
+        <option>Low light / getting dark</option>
+        <option>Dark</option>
+        <option>Fog / ice</option>
+      </select>
+    </label>
+    <label class="f">Other staff or volunteers on duty<input type="text" name="onDuty" placeholder="Names, or 'none'"></label>
+  </section>
+
+  <section class="card">
+    <h2><span class="step">2</span>What you saw</h2>
+    <p class="hint">Answer from what you actually saw today. Concerns are highlighted in red.</p>
+    <h3>Hazards seen</h3>
+    <p class="hint">"Yes" means you saw this happen.</p>
+    <div id="hazList"></div>
+    <h3>Controls in place</h3>
+    <p class="hint">"No" means this was missing.</p>
+    <div id="ctlList"></div>
+    <h3>Rough counts</h3>
+    <div class="two">
+      <label class="f">Cars entering the site<input type="number" inputmode="numeric" min="0" name="nCars"></label>
+      <label class="f">Cars dropping off / collecting on site<input type="number" inputmode="numeric" min="0" name="nDrop"></label>
+    </div>
+    <div class="two">
+      <label class="f">Other hirers' vehicles moving<input type="number" inputmode="numeric" min="0" name="nOther"></label>
+      <label class="f">Near misses seen<input type="number" inputmode="numeric" min="0" name="nNear"></label>
+    </div>
+    <label class="f">Other hirers on site and when they arrived or left<textarea name="otherHirers" rows="2" placeholder="e.g. Football club, arrived 10:40, about 15 cars"></textarea></label>
+    <label class="f">Describe any near misses<textarea name="nearMiss" rows="3" placeholder="What happened, where, roughly what time"></textarea></label>
+  </section>
+
+  <section class="card">
+    <h2><span class="step">3</span>Photos</h2>
+    <p class="hint">Add photos of problem spots, e.g. blind corners, yellow boxes, where children cross. Add a short caption to each. Photos are not kept if you close the page, so add them just before you create the PDF.</p>
+    <div class="filebtn"><button type="button" class="btn block">Add photos</button><input type="file" id="photoIn" accept="image/*" multiple aria-label="Add photos"></div>
+    <div class="photos" id="photos"></div>
+  </section>
+
+  <section class="card">
+    <h2><span class="step">4</span>Risk assessment</h2>
+    <p class="hint">The hazards and suggested actions are pre-filled. Edit them to match the site, then rate each one from what you saw. Rate "now" as things are today, and "after" as things would be once the extra actions are in place.</p>
+    <details class="key">
+      <summary>How to rate</summary>
+      <table>
+        <tr><td><b>Likelihood</b></td><td>1 Unlikely · 2 Possible · 3 Likely</td></tr>
+        <tr><td><b>Severity</b></td><td>1 Minor (first aid) · 2 Serious (hospital) · 3 Major (life-changing or fatal)</td></tr>
+        <tr><td><b>Risk</b></td><td>Likelihood × Severity: 1–2 Low · 3–4 Medium · 6–9 High</td></tr>
+      </table>
+    </details>
+    <div id="raList"></div>
+    <button type="button" class="btn block" id="addHaz">+ Add another hazard</button>
+  </section>
+
+  <section class="card">
+    <h2><span class="step">5</span>Summary and sign-off</h2>
+    <label class="f">What worked well today<textarea name="wentWell" rows="2"></textarea></label>
+    <label class="f">Your biggest concern<textarea name="bigConcern" rows="2"></textarea></label>
+    <label class="f">Top 3 actions for this coming week<textarea name="topActions" rows="3" placeholder="1.&#10;2.&#10;3."></textarea></label>
+    <label class="f">Reviewed by (manager, optional)<input type="text" name="reviewer"></label>
+    <div class="f" style="font-weight:600;font-size:.92rem;margin-top:12px">Your signature</div>
+    <div class="sig-wrap"><canvas id="sig" aria-label="Signature pad"></canvas></div>
+    <div class="row" style="margin-top:6px"><span class="muted" style="font-size:.85rem">Sign with your finger</span><button type="button" class="btn small" id="sigClear">Clear signature</button></div>
+  </section>
+
+  <div class="row" style="margin:6px 0 0">
+    <button type="button" class="btn danger" id="reset">Clear form and start again</button>
+  </div>
+  </form>
+  <footer>Your answers stay on this phone. Nothing is uploaded. Send the PDF to the office when you're done.</footer>
+</main>
+
+<div class="bar"><div class="inner">
+  <div class="status" id="status">Draft saves automatically</div>
+  <button type="button" class="btn primary" id="pdfBtn">Create PDF</button>
+</div></div>
+
+<div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+  <div class="panel">
+    <h2 id="sheetTitle">PDF ready</h2>
+    <p class="muted" id="sheetName" style="margin:0;word-break:break-all"></p>
+    <div class="actions">
+      <button type="button" class="btn primary block" id="shareBtn">Share PDF (WhatsApp, email…)</button>
+      <button type="button" class="btn block" id="dlBtn">Download PDF</button>
+      <button type="button" class="btn block" id="closeSheet">Back to form</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<script>
+(function () {
+  'use strict';
+  var STORE = 'safar-carpark-ra-v1';
+
+  var HAZARDS = [
+    { id: 'h_pace', q: 'Vehicles driving faster than walking pace on site' },
+    { id: 'h_reverse', q: 'Vehicles reversing or turning near people on foot' },
+    { id: 'h_dropoff', q: 'Parents stopping to drop off or collect in the car park' },
+    { id: 'h_yellow', q: 'Vehicles stopped or parked in yellow boxes (including outside Reception)' },
+    { id: 'h_between', q: 'Children walking between moving or parked cars' },
+    { id: 'h_unacc', q: 'Children on their own in the car park' },
+    { id: 'h_pavement', q: 'Vehicles driving or parking on the pavement on Church Lane' },
+    { id: 'h_lane', q: 'Speeding or unsafe driving on Church Lane near the entrance' },
+    { id: 'h_blind', q: 'Blind spots (vans, corners, parked cars) that could hide a child' },
+    { id: 'h_other', q: "Other hirers' vehicles moving during our arrival or departure" },
+    { id: 'h_queue', q: 'Queues backing up onto Church Lane' }
+  ];
+  var CONTROLS = [
+    { id: 'c_route', q: 'A clear, marked walking route from the gate to our entrance' },
+    { id: 'c_sep', q: 'People on foot kept apart from vehicles at the entrance' },
+    { id: 'c_signs', q: 'Signs for speed limit or children crossing' },
+    { id: 'c_hivis', q: 'Staff or volunteers on duty in hi-vis' },
+    { id: 'c_light', q: 'Good enough lighting' },
+    { id: 'c_lpg', q: 'Parents using the Little Park Gardens car park' },
+    { id: 'c_handover', q: 'Younger children handed to a parent at the door' },
+    { id: 'c_emerg', q: 'Emergency vehicle access kept clear' }
+  ];
+  var RA_DEFAULT = [
+    { hazard: 'Children hit by a moving or reversing vehicle in the school car park', who: 'Pupils (especially younger children), parents with buggies or toddlers', existing: 'Emails asking parents to drive slowly and use Little Park Gardens.', actions: 'No parent drop-off or collection in the car park at peak times. Coned walking route from the gate to our entrance. Adult in hi-vis at the main crossing point. Walking-pace signs.' },
+    { hazard: 'People on foot hit on Church Lane, including by vehicles driving on the pavement', who: 'Pupils, parents, public', existing: 'Email asking parents to drive slowly and not drive on the pavement.', actions: 'Repeat reminders each term. Ask parents to park at Little Park Gardens and walk in. Report ongoing problems to Enfield Council.' },
+    { hazard: "Other hirers' vehicles moving during our arrival and departure times", who: 'Pupils, parents, staff', existing: 'None specific to Safar Academy.', actions: 'Ask the school for all hirers\' times and for car park rules in every hire agreement. Move our start/finish times away from changeovers if possible. Walking route keeps children away from vehicles.' },
+    { hazard: 'Yellow boxes and Reception access blocked, including for emergency vehicles', who: 'All site users', existing: 'Email asking parents not to park in the yellow boxes.', actions: 'Cones on the yellow boxes at peak times. Duty adult politely asks drivers to move on. Follow up with families who repeat it.' },
+    { hazard: 'Children leaving at pick-up and running into the car park on their own', who: 'Pupils', existing: '[Describe how children are dismissed now]', actions: 'Younger year groups handed to a known adult at the door. Older pupils leave by the walking route only. Stagger dismissal by year group.' },
+    { hazard: 'Poor visibility at pick-up (dark winter afternoons, rain)', who: 'Pupils, parents, staff', existing: 'Site lighting (check it works).', actions: 'Check the lighting at winter pick-up time. Hi-vis for adults on duty. Ask the school to fix any dark spots.' },
+    { hazard: 'Staff or volunteers hit while guiding people in the car park', who: 'Staff, volunteers', existing: 'None.', actions: 'Hi-vis vests. Short briefing before first duty. Duty adults guide people on foot and do not stand in the path of vehicles. Nobody directs traffic on Church Lane.' }
+  ];
+
+  var form = document.getElementById('f');
+  var photos = []; // {data, w, h, caption}
+  var ra = [];
+  var sigData = null;
+
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+
+  function grow(el) { if (!el || el.tagName !== 'TEXTAREA') return; el.style.height = 'auto'; el.style.height = (el.scrollHeight + 2) + 'px'; }
+  function growAll(root) { Array.prototype.forEach.call((root || document).querySelectorAll('textarea'), grow); }
+  document.addEventListener('input', function (e) { grow(e.target); });
+
+  // ---------- checklist ----------
+  function obsHTML(item, concern) {
+    var opts = ['Yes', 'No', 'N/A'].map(function (v) {
+      return '<label><input type="radio" name="' + item.id + '" value="' + v + '"><span>' + v + '</span></label>';
+    }).join('');
+    return '<div class="obs" data-id="' + item.id + '" data-concern="' + concern + '">' +
+      '<p class="q">' + esc(item.q) + '</p><div class="seg" role="radiogroup" aria-label="' + esc(item.q) + '">' + opts + '</div>' +
+      '<textarea name="' + item.id + '_note" rows="1" placeholder="Note (optional)"></textarea></div>';
+  }
+  document.getElementById('hazList').innerHTML = HAZARDS.map(function (h) { return obsHTML(h, 'Yes'); }).join('');
+  document.getElementById('ctlList').innerHTML = CONTROLS.map(function (c) { return obsHTML(c, 'No'); }).join('');
+
+  function refreshConcerns() {
+    Array.prototype.forEach.call(document.querySelectorAll('.obs'), function (el) {
+      var c = el.querySelector('input:checked');
+      el.classList.toggle('concern', !!c && c.value === el.dataset.concern);
+    });
+  }
+
+  // ---------- risk assessment ----------
+  function score(L, S) { L = +L; S = +S; if (!L || !S) return null; return L * S; }
+  function band(n) { if (n == null) return null; return n <= 2 ? 'Low' : n <= 4 ? 'Medium' : 'High'; }
+  function bandCls(b) { return b === 'Low' ? 'low' : b === 'Medium' ? 'med' : b === 'High' ? 'high' : ''; }
+  function sel(f, val, label, opts) {
+    return '<label class="f">' + label + '<select data-f="' + f + '"><option value="">–</option>' +
+      opts.map(function (o, i) { var v = String(i + 1); return '<option value="' + v + '"' + (String(val) === v ? ' selected' : '') + '>' + v + ' ' + o + '</option>'; }).join('') +
+      '</select></label>';
+  }
+  var LOPTS = ['Unlikely', 'Possible', 'Likely'], SOPTS = ['Minor', 'Serious', 'Major'];
+  function badgeHTML(L, S, key) {
+    var n = score(L, S), b = band(n);
+    return '<span class="badge ' + bandCls(b) + '" data-badge="' + key + '">' + (b ? b + ' (' + n + ')' : 'Not rated') + '</span>';
+  }
+  function raHTML(r, i) {
+    return '<div class="ra" data-i="' + i + '">' +
+      '<div class="ra-head"><span class="num">' + (i + 1) + '</span><label style="flex:1;min-width:0"><span class="sub" style="display:block;margin:0">Hazard</span><textarea data-f="hazard" rows="2">' + esc(r.hazard) + '</textarea></label></div>' +
+      '<label class="f">Who could be harmed<textarea data-f="who" rows="2">' + esc(r.who) + '</textarea></label>' +
+      '<label class="f">Already in place<textarea data-f="existing" rows="2">' + esc(r.existing) + '</textarea></label>' +
+      '<p class="sub">Risk now</p>' +
+      '<div class="rate">' + sel('L', r.L, 'Likelihood', LOPTS) + sel('S', r.S, 'Severity', SOPTS) + badgeHTML(r.L, r.S, 'now') + '</div>' +
+      '<label class="f">Extra actions needed<textarea data-f="actions" rows="3">' + esc(r.actions) + '</textarea></label>' +
+      '<div class="two"><label class="f">Who will do it<input type="text" data-f="owner" value="' + esc(r.owner) + '"></label><label class="f">By when<input type="date" data-f="due" value="' + esc(r.due) + '"></label></div>' +
+      '<p class="sub">Risk after actions</p>' +
+      '<div class="rate">' + sel('rL', r.rL, 'Likelihood', LOPTS) + sel('rS', r.rS, 'Severity', SOPTS) + badgeHTML(r.rL, r.rS, 'after') + '</div>' +
+      (r.custom ? '<div class="row" style="margin-top:10px;justify-content:flex-end"><button type="button" class="btn small danger" data-del="' + i + '">Remove this hazard</button></div>' : '') +
+      '</div>';
+  }
+  function renderRA() {
+    document.getElementById('raList').innerHTML = ra.map(raHTML).join('');
+    growAll(document.getElementById('raList'));
+  }
+  function freshRA() {
+    return RA_DEFAULT.map(function (r) { return { hazard: r.hazard, who: r.who, existing: r.existing, actions: r.actions, L: '', S: '', rL: '', rS: '', owner: '', due: '' }; });
+  }
+  var raList = document.getElementById('raList');
+  raList.addEventListener('input', onRA);
+  raList.addEventListener('change', onRA);
+  function onRA(e) {
+    var f = e.target.dataset.f; if (!f) return;
+    var card = e.target.closest('.ra'); var i = +card.dataset.i;
+    ra[i][f] = e.target.value;
+    if (f === 'L' || f === 'S') card.querySelector('[data-badge=now]').outerHTML = badgeHTML(ra[i].L, ra[i].S, 'now');
+    if (f === 'rL' || f === 'rS') card.querySelector('[data-badge=after]').outerHTML = badgeHTML(ra[i].rL, ra[i].rS, 'after');
+    saveSoon();
+  }
+  raList.addEventListener('click', function (e) {
+    var d = e.target.getAttribute('data-del'); if (d == null) return;
+    if (!confirm('Remove this hazard?')) return;
+    ra.splice(+d, 1); renderRA(); saveSoon();
+  });
+  document.getElementById('addHaz').addEventListener('click', function () {
+    ra.push({ hazard: '', who: '', existing: '', actions: '', L: '', S: '', rL: '', rS: '', owner: '', due: '', custom: true });
+    renderRA(); saveSoon();
+    var last = raList.lastElementChild; last.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    last.querySelector('textarea').focus({ preventScroll: true });
+  });
+
+  // ---------- photos ----------
+  function loadImage(file) {
+    return new Promise(function (res, rej) {
+      var url = URL.createObjectURL(file); var img = new Image();
+      img.onload = function () {
+        var max = 1400, w = img.naturalWidth, h = img.naturalHeight, k = Math.min(1, max / Math.max(w, h));
+        var c = document.createElement('canvas'); c.width = Math.round(w * k); c.height = Math.round(h * k);
+        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+        URL.revokeObjectURL(url);
+        res({ data: c.toDataURL('image/jpeg', 0.72), w: c.width, h: c.height, caption: '' });
+      };
+      img.onerror = function () { URL.revokeObjectURL(url); rej(new Error('Could not read ' + file.name)); };
+      img.src = url;
+    });
+  }
+  function renderPhotos() {
+    document.getElementById('photos').innerHTML = photos.map(function (p, i) {
+      return '<div class="photo" data-p="' + i + '"><img src="' + p.data + '" alt="Photo ' + (i + 1) + '"><div>' +
+        '<textarea rows="2" data-cap="' + i + '" placeholder="Caption, e.g. Blind corner by the bins">' + esc(p.caption) + '</textarea>' +
+        '<button type="button" class="btn small danger" data-rm="' + i + '">Remove</button></div></div>';
+    }).join('');
+  }
+  document.getElementById('photoIn').addEventListener('change', function (e) {
+    var files = Array.prototype.slice.call(e.target.files || []);
+    setStatus('Adding photos…');
+    Promise.all(files.map(function (f) { return loadImage(f).catch(function () { return null; }); })).then(function (list) {
+      list.forEach(function (p) { if (p) photos.push(p); });
+      renderPhotos(); e.target.value = '';
+      setStatus(photos.length + ' photo' + (photos.length === 1 ? '' : 's') + ' added');
+    });
+  });
+  document.getElementById('photos').addEventListener('input', function (e) {
+    var i = e.target.getAttribute('data-cap'); if (i != null) photos[+i].caption = e.target.value;
+  });
+  document.getElementById('photos').addEventListener('click', function (e) {
+    var i = e.target.getAttribute('data-rm'); if (i == null) return;
+    photos.splice(+i, 1); renderPhotos();
+  });
+
+  // ---------- signature ----------
+  var cv = document.getElementById('sig'), ctx = cv.getContext('2d'), drawing = false, hasInk = false;
+  function sizeCanvas() {
+    var r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
+    cv.width = Math.round(r.width * dpr); cv.height = Math.round(r.height * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.lineWidth = 2.4; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.strokeStyle = '#111';
+    if (sigData) { var im = new Image(); im.onload = function () { ctx.drawImage(im, 0, 0, r.width, r.height); }; im.src = sigData; hasInk = true; }
+  }
+  function pt(e) { var r = cv.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; }
+  cv.addEventListener('pointerdown', function (e) { drawing = true; cv.setPointerCapture(e.pointerId); var p = pt(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p.x + 0.1, p.y + 0.1); ctx.stroke(); hasInk = true; e.preventDefault(); });
+  cv.addEventListener('pointermove', function (e) { if (!drawing) return; var p = pt(e); ctx.lineTo(p.x, p.y); ctx.stroke(); e.preventDefault(); });
+  function endSig() { if (!drawing) return; drawing = false; sigData = cv.toDataURL('image/png'); saveSoon(); }
+  cv.addEventListener('pointerup', endSig); cv.addEventListener('pointercancel', endSig);
+  document.getElementById('sigClear').addEventListener('click', function () { ctx.clearRect(0, 0, cv.width, cv.height); sigData = null; hasInk = false; saveSoon(); });
+
+  // ---------- save / restore ----------
+  function collect() {
+    var d = {};
+    Array.prototype.forEach.call(form.elements, function (el) {
+      if (!el.name) return;
+      if (el.type === 'radio') { if (el.checked) d[el.name] = el.value; else if (!(el.name in d)) d[el.name] = ''; }
+      else if (el.type !== 'file') d[el.name] = el.value;
+    });
+    return d;
+  }
+  var t;
+  function saveSoon() { clearTimeout(t); t = setTimeout(save, 400); }
+  function save() {
+    try { localStorage.setItem(STORE, JSON.stringify({ f: collect(), ra: ra, sig: sigData, at: Date.now() })); setStatus('Draft saved on this phone ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })); }
+    catch (e) { setStatus('Could not save draft on this phone'); }
+  }
+  function restore() {
+    var s = null;
+    try { s = JSON.parse(localStorage.getItem(STORE) || 'null'); } catch (e) { s = null; }
+    if (!s) return false;
+    Object.keys(s.f || {}).forEach(function (k) {
+      var els = form.elements[k]; if (!els) return;
+      if (els.length && els[0] && els[0].type === 'radio') { Array.prototype.forEach.call(els, function (r) { r.checked = r.value === s.f[k]; }); }
+      else if (els.type !== 'file') els.value = s.f[k];
+    });
+    if (Array.isArray(s.ra) && s.ra.length) ra = s.ra;
+    sigData = s.sig || null;
+    return true;
+  }
+  function setStatus(m) { document.getElementById('status').textContent = m; }
+
+  form.addEventListener('input', function (e) { if (e.target.name) { e.target.classList.remove('invalid'); saveSoon(); } updateHeader(); });
+  form.addEventListener('change', function (e) { if (e.target.type === 'radio') refreshConcerns(); if (e.target.name) saveSoon(); });
+  document.getElementById('reset').addEventListener('click', function () {
+    if (!confirm('Clear everything on this form? This cannot be undone.')) return;
+    try { localStorage.removeItem(STORE); } catch (e) {}
+    location.reload();
+  });
+  function updateHeader() {
+    var b = form.elements.branch.value.trim(), s = form.elements.site.value.trim();
+    document.getElementById('hdrSite').textContent = 'Safar Academy' + (b ? ' · ' + b + ' branch' : '') + (s ? ' · ' + s : '');
+  }
+
+  // init
+  var qs = new URLSearchParams(location.search);
+  var restored = restore();
+  if (!restored) {
+    ra = freshRA();
+    if (qs.get('branch')) form.elements.branch.value = qs.get('branch');
+    if (qs.get('site')) form.elements.site.value = qs.get('site');
+  }
+  if (!form.elements.date.value) {
+    var now = new Date(); form.elements.date.value = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+  }
+  renderRA(); refreshConcerns(); updateHeader(); requestAnimationFrame(function () { growAll(); });
+  if (restored) setStatus('Draft restored from this phone');
+  requestAnimationFrame(sizeCanvas);
+  var lastW = window.innerWidth;
+  window.addEventListener('resize', function () { if (window.innerWidth !== lastW) { lastW = window.innerWidth; sizeCanvas(); growAll(); } });
+
+  // ---------- PDF ----------
+  var BRAND = [15, 92, 74];
+  var FILL = { Low: [227, 243, 232], Medium: [255, 236, 196], High: [253, 220, 216] };
+  var INK = { Low: [30, 110, 64], Medium: [140, 90, 0], High: [170, 30, 25] };
+  function clean(s) {
+    return String(s == null ? '' : s)
+      .replace(/[‘’ʼ]/g, "'").replace(/[“”]/g, '"')
+      .replace(/[–—]/g, '-').replace(/…/g, '...').replace(/×/g, 'x')
+      .replace(/[^\x09\x0A\x0D\x20-\x7E -ÿ]/g, '');
+  }
+  function fmtDate(v) {
+    if (!v) return '';
+    var p = v.split('-'); if (p.length !== 3) return v;
+    var d = new Date(+p[0], +p[1] - 1, +p[2]);
+    return d.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  }
+  function shortDate(v) { if (!v) return ''; var p = v.split('-'); return p.length === 3 ? p[2] + '/' + p[1] + '/' + p[0] : v; }
+
+  function validate(d) {
+    var bad = [];
+    ['assessor', 'date', 'session'].forEach(function (k) { if (!String(d[k] || '').trim()) { bad.push(k); form.elements[k].classList.add('invalid'); } });
+    if (bad.length) {
+      form.elements[bad[0]].scrollIntoView({ behavior: 'smooth', block: 'center' });
+      alert('Please fill in your name, the date and the session first.');
+      return false;
+    }
+    var unrated = ra.filter(function (r) { return !score(r.L, r.S); }).length;
+    if (unrated && !confirm(unrated + ' hazard' + (unrated === 1 ? ' has' : 's have') + ' no "risk now" rating. Create the PDF anyway?')) return false;
+    return true;
+  }
+
+  function buildPDF(d) {
+    var jsPDF = window.jspdf.jsPDF;
+    var doc = new jsPDF({ unit: 'mm', format: 'a4' });
+    var W = 210, H = 297, M = 14, y;
+    doc.setLineHeightFactor(1.25);
+
+    // header band
+    doc.setFillColor.apply(doc, BRAND); doc.rect(0, 0, W, 26, 'F');
+    doc.setTextColor(255); doc.setFont('helvetica', 'bold'); doc.setFontSize(15);
+    doc.text('Car Park & Traffic Risk Assessment', M, 12);
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(10);
+    doc.text(clean('Safar Academy  |  ' + (d.branch || '') + ' branch  |  ' + (d.site || '')), M, 19.5);
+    doc.setTextColor(28, 36, 33);
+    y = 32;
+
+    function heading(txt) {
+      if (y > H - 40) { doc.addPage(); y = 18; }
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(12); doc.setTextColor.apply(doc, BRAND);
+      doc.text(clean(txt), M, y); doc.setDrawColor.apply(doc, BRAND); doc.setLineWidth(0.4); doc.line(M, y + 1.6, W - M, y + 1.6);
+      doc.setTextColor(28, 36, 33); doc.setFont('helvetica', 'normal');
+      y += 5;
+    }
+    var base = { theme: 'grid', margin: { left: M, right: M, top: 16, bottom: 16 }, styles: { font: 'helvetica', fontSize: 9, cellPadding: 2, lineColor: [205, 212, 209], lineWidth: 0.2, textColor: [28, 36, 33], valign: 'top', overflow: 'linebreak' }, headStyles: { fillColor: BRAND, textColor: 255, fontStyle: 'bold' } };
+    function table(opts) {
+      var o = Object.assign({}, base, opts, { startY: y });
+      o.styles = Object.assign({}, base.styles, opts.styles || {});
+      doc.autoTable(o); y = doc.lastAutoTable.finalY + 7;
+    }
+    var keyCol = { 0: { fontStyle: 'bold', cellWidth: 48, fillColor: [240, 244, 242] } };
+
+    // details
+    var time = [d.tFrom, d.tTo].filter(Boolean).join(' - ');
+    table({ body: [
+      ['Assessor', clean(d.assessor + (d.role ? ' (' + d.role + ')' : ''))],
+      ['Date', clean(fmtDate(d.date))],
+      ['Session', clean(d.session + (time ? ', ' + time : ''))],
+      ['Conditions', clean(d.conditions || '-')],
+      ['Others on duty', clean(d.onDuty || '-')]
+    ], columnStyles: keyCol });
+
+    // summary
+    var hazSeen = HAZARDS.filter(function (h) { return d[h.id] === 'Yes'; });
+    var ctlMissing = CONTROLS.filter(function (c) { return d[c.id] === 'No'; });
+    var rated = ra.map(function (r) { return band(score(r.L, r.S)); });
+    var nHigh = rated.filter(function (b) { return b === 'High'; }).length, nMed = rated.filter(function (b) { return b === 'Medium'; }).length;
+    heading('Summary');
+    var sumRows = [
+      ['Hazards seen', hazSeen.length + ' of ' + HAZARDS.length],
+      ['Controls missing', ctlMissing.length + ' of ' + CONTROLS.length],
+      ['Risks rated High now', String(nHigh)],
+      ['Risks rated Medium now', String(nMed)],
+      ['Near misses seen', clean(d.nNear || '0')]
+    ];
+    if (d.bigConcern) sumRows.push(['Biggest concern', clean(d.bigConcern)]);
+    if (d.topActions) sumRows.push(['Top actions this week', clean(d.topActions)]);
+    if (d.wentWell) sumRows.push(['What worked well', clean(d.wentWell)]);
+    table({ body: sumRows, columnStyles: keyCol, didParseCell: function (h) {
+      if (h.section === 'body' && h.column.index === 1 && h.row.index === 2 && nHigh > 0) { h.cell.styles.fillColor = FILL.High; h.cell.styles.textColor = INK.High; h.cell.styles.fontStyle = 'bold'; }
+    } });
+
+    // observations
+    function obsTable(title, list, concern) {
+      heading(title);
+      table({
+        head: [['Item', 'Answer', 'Note']],
+        body: list.map(function (it) { return [clean(it.q), d[it.id] || '-', clean(d[it.id + '_note'] || '')]; }),
+        columnStyles: { 0: { cellWidth: 92 }, 1: { cellWidth: 20, halign: 'center', fontStyle: 'bold' } },
+        didParseCell: function (h) {
+          if (h.section === 'body' && h.column.index === 1 && h.cell.raw === concern) { h.cell.styles.fillColor = FILL.High; h.cell.styles.textColor = INK.High; }
+        }
+      });
+    }
+    obsTable('Hazards seen (Yes = seen today)', HAZARDS, 'Yes');
+    obsTable('Controls in place (No = missing today)', CONTROLS, 'No');
+
+    heading('Counts and notes');
+    table({ body: [
+      ['Cars entering the site', clean(d.nCars || '-')],
+      ['Cars dropping off / collecting on site', clean(d.nDrop || '-')],
+      ["Other hirers' vehicles moving", clean(d.nOther || '-')],
+      ['Near misses seen', clean(d.nNear || '-')],
+      ['Other hirers on site', clean(d.otherHirers || '-')],
+      ['Near miss details', clean(d.nearMiss || '-')]
+    ], columnStyles: { 0: { fontStyle: 'bold', cellWidth: 62, fillColor: [240, 244, 242] } } });
+
+    // risk assessment
+    doc.addPage(); y = 18;
+    heading('Risk assessment');
+    function riskCell(L, S) {
+      var n = score(L, S), b = band(n);
+      return { content: b ? b + ' (' + n + ')\nL' + L + ' x S' + S : 'Not rated', b: b };
+    }
+    var body = ra.map(function (r, i) {
+      var now = riskCell(r.L, r.S), after = riskCell(r.rL, r.rS);
+      var act = clean(r.actions || '-');
+      var meta = [r.owner ? 'Owner: ' + clean(r.owner) : '', r.due ? 'By: ' + shortDate(r.due) : ''].filter(Boolean).join('\n');
+      return [String(i + 1),
+        { content: clean(r.hazard || '-') + (r.who ? '\n\nWho: ' + clean(r.who) : '') },
+        clean(r.existing || '-'),
+        { content: now.content, b: now.b },
+        act + (meta ? '\n\n' + meta : ''),
+        { content: after.content, b: after.b }];
+    });
+    table({
+      head: [['#', 'Hazard and who is at risk', 'Already in place', 'Risk now', 'Extra actions, owner, deadline', 'Risk after']],
+      body: body,
+      styles: { fontSize: 8.2 },
+      columnStyles: { 0: { cellWidth: 7, halign: 'center' }, 1: { cellWidth: 42 }, 2: { cellWidth: 34 }, 3: { cellWidth: 19, halign: 'center', fontStyle: 'bold' }, 4: { cellWidth: 61 }, 5: { cellWidth: 19, halign: 'center', fontStyle: 'bold' } },
+      didParseCell: function (h) {
+        if (h.section === 'body' && (h.column.index === 3 || h.column.index === 5)) {
+          var b = h.cell.raw && h.cell.raw.b;
+          if (b) { h.cell.styles.fillColor = FILL[b]; h.cell.styles.textColor = INK[b]; }
+          else { h.cell.styles.textColor = [120, 130, 126]; h.cell.styles.fontStyle = 'normal'; }
+        }
+      }
+    });
+    if (y > H - 30) { doc.addPage(); y = 18; }
+    doc.setFontSize(8); doc.setTextColor(93, 105, 101);
+    doc.text('Likelihood (L): 1 Unlikely, 2 Possible, 3 Likely.  Severity (S): 1 Minor (first aid), 2 Serious (hospital), 3 Major (life-changing or fatal).', M, y);
+    doc.text('Risk = L x S:  1-2 Low,  3-4 Medium,  6-9 High.', M, y + 4);
+    doc.setTextColor(28, 36, 33);
+    y += 12;
+
+    // sign-off
+    if (y > H - 60) { doc.addPage(); y = 18; }
+    heading('Sign-off');
+    var rx = W / 2 + 4, top = y, sigH = 26, lineY = top + 12 + sigH;
+    doc.setFontSize(9.5);
+    doc.text(clean('Completed by: ' + d.assessor + (d.role ? ', ' + d.role : '')), M, top + 3, { maxWidth: rx - M - 8 });
+    doc.text(clean('Date: ' + shortDate(d.date)), M, top + 9);
+    doc.text(clean('Reviewed by: ' + (d.reviewer || '')), rx, top + 3, { maxWidth: W - M - rx });
+    doc.text('Date:', rx, top + 9);
+    if (sigData && hasInk) {
+      try {
+        var pr = doc.getImageProperties(sigData), sh = sigH, sw = Math.min(80, sh * pr.width / pr.height);
+        doc.addImage(sigData, 'PNG', M, top + 11, sw, sh);
+      } catch (e) {}
+    }
+    doc.setDrawColor(150); doc.setLineWidth(0.2);
+    doc.line(M, lineY, M + 80, lineY); doc.line(rx, lineY, W - M, lineY);
+    doc.setFontSize(8); doc.setTextColor(93, 105, 101);
+    doc.text('Assessor signature', M, lineY + 4); doc.text('Manager signature', rx, lineY + 4);
+    doc.setTextColor(28, 36, 33);
+    y = lineY + 12;
+
+    // photos
+    var ph = photos.filter(function (p) { return p && p.data; });
+    if (ph.length) {
+      doc.addPage(); y = 18; heading('Photos');
+      var boxW = W - 2 * M, boxH = 110;
+      ph.forEach(function (p, i) {
+        var cap = clean('Photo ' + (i + 1) + (p.caption ? ': ' + p.caption : ''));
+        var capLines = doc.splitTextToSize(cap, boxW);
+        var k = Math.min(boxW / p.w, boxH / p.h), iw = p.w * k, ih = p.h * k;
+        var need = ih + 6 + capLines.length * 4.5;
+        if (y + need > H - 16) { doc.addPage(); y = 18; }
+        doc.addImage(p.data, 'JPEG', M + (boxW - iw) / 2, y, iw, ih);
+        y += ih + 5;
+        doc.setFontSize(9); doc.text(capLines, M, y);
+        y += capLines.length * 4.5 + 8;
+      });
+    }
+
+    // footer on every page
+    var n = doc.getNumberOfPages();
+    var stamp = 'Created ' + new Date().toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+    for (var p = 1; p <= n; p++) {
+      doc.setPage(p); doc.setFontSize(7.5); doc.setTextColor(120, 130, 126);
+      doc.text(clean('Safar Academy - ' + (d.branch || '') + ' car park risk assessment - ' + shortDate(d.date) + ' ' + (d.session || '')), M, H - 8);
+      doc.text(stamp + '  |  Page ' + p + ' of ' + n, W - M, H - 8, { align: 'right' });
+    }
+    return doc;
+  }
+
+  var pdfBlob = null, pdfName = '';
+  document.getElementById('pdfBtn').addEventListener('click', function () {
+    if (!window.jspdf || !window.jspdf.jsPDF) { alert('The PDF tool has not loaded. Check your internet connection and reload the page. Your answers are saved.'); return; }
+    var d = collect();
+    if (!validate(d)) return;
+    save();
+    var btn = this; btn.disabled = true; btn.textContent = 'Creating…';
+    setTimeout(function () {
+      try {
+        var doc = buildPDF(d);
+        pdfBlob = doc.output('blob');
+        var slug = function (s) { return clean(s).trim().replace(/[^A-Za-z0-9]+/g, '-').replace(/^-|-$/g, ''); };
+        pdfName = ['Safar', slug(d.branch || 'Branch'), 'Car-Park-RA', d.date, slug(d.session), slug(d.assessor)].filter(Boolean).join('_') + '.pdf';
+        document.getElementById('sheetName').textContent = pdfName;
+        var canShare = false;
+        try { canShare = !!(navigator.canShare && navigator.canShare({ files: [new File([pdfBlob], pdfName, { type: 'application/pdf' })] })); } catch (e) {}
+        document.getElementById('shareBtn').style.display = canShare ? '' : 'none';
+        document.getElementById('dlBtn').classList.toggle('primary', !canShare);
+        document.getElementById('sheet').classList.add('open');
+        setStatus('PDF created');
+      } catch (err) {
+        console.error(err); alert('Sorry, the PDF could not be created: ' + err.message);
+      } finally { btn.disabled = false; btn.textContent = 'Create PDF'; }
+    }, 30);
+  });
+  document.getElementById('shareBtn').addEventListener('click', function () {
+    if (!pdfBlob) return;
+    var file = new File([pdfBlob], pdfName, { type: 'application/pdf' });
+    navigator.share({ files: [file], title: 'Car park risk assessment', text: 'Car park risk assessment: ' + pdfName }).catch(function () {});
+  });
+  document.getElementById('dlBtn').addEventListener('click', function () {
+    if (!pdfBlob) return;
+    var url = URL.createObjectURL(pdfBlob), a = document.createElement('a');
+    a.href = url; a.download = pdfName; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function () { URL.revokeObjectURL(url); }, 60000);
+  });
+  document.getElementById('closeSheet').addEventListener('click', function () { document.getElementById('sheet').classList.remove('open'); });
+  document.getElementById('sheet').addEventListener('click', function (e) { if (e.target === this) this.classList.remove('open'); });
+})();
+</script>
+</body>
+</html>
